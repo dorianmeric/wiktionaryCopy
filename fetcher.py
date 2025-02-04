@@ -2,13 +2,26 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def deleteIfFound(dom, cssSelector):
+
+    res = dom.select(cssSelector)
+    if res is not None:
+        try:
+            for e in res:
+                e.decompose()
+        except TypeError:
+            res.decompose()
+        
+        
+
+
 class Wiktionary(object):
     """Define communication with Wiktionary."""
 
     def __init__(self, dest_lang, origin_lang):
-        self.dest_lang = dest_lang 
+        self.dest_lang = dest_lang
         self.origin_lang = origin_lang
-        self.url = "https://"+self.dest_lang+".wiktionary.org/wiki/{}?printable=yes"
+        self.url = "https://" + self.dest_lang + ".wiktionary.org/wiki/{}" # ?printable=yes
         self.soup = None
 
     def word(self, word):
@@ -22,24 +35,41 @@ class Wiktionary(object):
         soup = BeautifulSoup(response.content, "html.parser", from_encoding=encoding)
 
         # Error page of wiktionary.org
-        noarticle = soup.find('div', {'class': 'noarticletext'})
+        noarticle = soup.find("div", {"class": "noarticletext"})
         if noarticle is not None:
             raise Exception(word + " entry does not exist.")
 
+        dom = soup.select_one("div#mw-content-text")
+
+        # delete the "edit" links
+        deleteIfFound(dom, "span.mw-editsection")
+
+        # delete the header with the logo
+        deleteIfFound(dom, "div.interproject-box")
+        deleteIfFound(dom, "div:has(h2#Etymology) + p")
+        deleteIfFound(dom, "div:has(h2#Etymology)")
+        deleteIfFound(dom, "li.ko-pron__ph")
+        deleteIfFound(dom, "table.ko-pron")
+        deleteIfFound(dom, "td.audiometa")
+
+
         # Find the language origin section:
         # for ex: <span class="mw-headline" id="Romanian">Romanian</span>
-        lang_block = soup.find('span', {'class':'mw-headline', 'id':self.origin_lang})
+        lang_block = dom.select_one("h2#" + self.origin_lang)
         if not lang_block:
-            raise Exception("Language `" + self.origin_lang + "` does not exist for this `" + word + "` entry.")
+            raise Exception("Language `" + self.origin_lang + "` does not exist for this `" + word + "` entry. Tried: " + self.url.format(word))
+
+        listOfsiblingTags = lang_block.parent.find_next_siblings()
+
         content = ""
-        for tag in lang_block.parent.find_next_siblings():
-            if tag.name == 'h2': # this is another language
+        for tag in listOfsiblingTags:
+            if tag.name == "h2":  # this is another language
                 break
-            content += tag.prettify()
+
+            content = content + str(tag) #.prettify()
 
             content = content.replace('href="/wiki/', 'href="https://{}.wiktionary.org/wiki/'.format(self.dest_lang))
-            content = content.replace('  ', ' ')
-            content = content.replace('  ', '')
+            content = content.replace("  ", " ")
+            content = content.replace("  ", "")
 
         return content
-
