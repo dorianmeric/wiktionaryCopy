@@ -1,16 +1,21 @@
 import requests
 from bs4 import BeautifulSoup
 
-
-def deleteIfFound(dom, cssSelector):
-
+# returns true if changed, and false if no change
+def deleteIfFound(dom, cssSelector) -> bool:
     res = dom.select(cssSelector)
+    wasModified = False
     if res is not None:
-        try:
-            for e in res:
-                e.decompose()
-        except TypeError:
-            res.decompose()
+
+        for i, e in enumerate(res):
+            # print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            # print(f"element: {e.string if e.string is not None else 'Nonetype element!'}")
+            # print("MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM")
+
+            res[i].decompose()
+            wasModified = True
+
+    return wasModified
         
         
 
@@ -51,6 +56,9 @@ class Wiktionary(object):
         deleteIfFound(dom, "li.ko-pron__ph")
         deleteIfFound(dom, "table.ko-pron")
         deleteIfFound(dom, "td.audiometa")
+        deleteIfFound(dom, "  dd:has( > i[lang='ko-Latn'] )  ")  # the romanised korean
+        deleteIfFound(dom, "span[lang='ko-Latn']") # the romanised korean
+        deleteIfFound(dom, "i[lang='ko-Latn']") # the romanised korean
 
 
         # Find the language origin section:
@@ -66,7 +74,7 @@ class Wiktionary(object):
             if tag.name == "h2":  # this is another language
                 break
 
-            content = content + str(tag) #.prettify()
+            content = content + str(tag).replace(" ―  ― ", " ― ").replace("()").replace('<span class="mention-gloss-paren annotation-paren">(</span><span class="mention-gloss-paren annotation-paren">)</span>', "") #.prettify()
 
             content = content.replace('href="/wiki/', 'href="https://{}.wiktionary.org/wiki/'.format(self.dest_lang))
             content = content.replace("  ", " ")
