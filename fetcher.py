@@ -74,10 +74,12 @@ class Wiktionary(object):
             if tag.name == "h2":  # this is another language
                 break
 
-            content = content + str(tag).replace(" ―  ― ", " ― ").replace("()").replace('<span class="mention-gloss-paren annotation-paren">(</span><span class="mention-gloss-paren annotation-paren">)</span>', "") #.prettify()
+            content = content + str(tag) #.prettify()
 
             content = content.replace('href="/wiki/', 'href="https://{}.wiktionary.org/wiki/'.format(self.dest_lang))
             content = content.replace("  ", " ")
             content = content.replace("  ", "")
-
+            content = content.replace(" ―  ― ", " ― ")
+            content = content.replace("()", "")
+            content = content.replace('<span class="mention-gloss-paren annotation-paren">(</span><span class="mention-gloss-paren annotation-paren">)</span>', "")
         return content
